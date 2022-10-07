@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    {% load static %}
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta charset="utf-8">
@@ -22,13 +21,18 @@
 
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
 
-<title>게시물 상세 보기</title>
+<title>게시물 작성</title>
 
 <style>
     span {
         padding-right: 5px;
     }
-    .detail-box {
+    .navi_icons {
+        padding-right: 18px;
+        font-size: 28px;
+        cursor: pointer;
+    }
+    .write-box {
         border: 1px solid lightgray;
         border-radius: 3px;
         color: black;
@@ -37,43 +41,23 @@
         padding: 20px 20px 20px 20px;
     }
 
-    .image-area {
+    .image-preview {
         border: 1px solid lightgray;
         border-radius: 3px;
-        height: 400px;
-        background: black;
+        padding: 0 10px 0 10px;
+        height: 300px;
+        background: lightgray;
     }
-    .image-box {
+    #tempImage {
         width: 100%;
         height: 100%;
         object-fit: contain;
-        background: black;
+        background: lightgray;
     }
-    .content-area {
-        padding: 0 10px 0 10px;
-        background: white;
-    }
-    .input-box {
-        border: 1px solid lightgray;
-        outline: none;
-        width: 350px;
-        height: 30px;
-    }
-    .submit {
-        height: 30px;
-        width: 70px;
-    }
-    .comment-write-box {
-        margin-top: 20px;
-        padding: 0 10px 0 10px;
-    }
-    .comment-box {
-        padding: 0 10px 0 10px;
-    }
-    .navi_icons {
-        padding-right: 18px;
-        font-size: 28px;
-        cursor: pointer;
+
+    .submit-btn {
+        text-align: right;
+        padding: 5px 0 0 0;
     }
 
     .container {
@@ -111,9 +95,11 @@
     .round img {
     border-radius: 100%
     }
+
 </style>
 
 </head>
+
 <body>
 <!-- 네비게이션 바 -->
 <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom"
@@ -140,54 +126,46 @@
         </div>
     </div>
 </nav>
-<div class="detail-box">
-    <div class="image-area">
-        <img class="image-box" src="{% get_media_prefix%}{{ post.image }}">
-    </div>
-    <div class="content-area">
-        <div>
-            <h4 class="post_text"><b>{{ post.author.user_nick_name }}</b> {{ post.title }}</h4>
-            <h5 class="content_text"> {{ post.content }} </h5>
-            <h6 class="card-text" style="float: right; margin: auto 10px auto auto"><small
-                    class="text-muted">{{ post.created_at|timesince }}전</h6>
+
+<div class="write-box">
+    <hr>
+    <b>{{ user.user_nick_name }}</b> 게시글 작성
+    <hr>
+    <form class="form-area" enctype="multipart/form-data" action="/write/" method="post">
+        {% csrf_token %}
+        <div class="input-group mb-3">
+            <span class="input-group-text" id="inputGroup-sizing-default">제목</span>
+            <input type="text" class="form-control" name="title" aria-label="Sizing example input"
+                   aria-describedby="inputGroup-sizing-default" placeholder="제목을 입력하세요">
         </div>
-    </div>
-    <div class="comment-write-box">
-         <div class="comment_input">
-             <hr>
-            <form method="post" action="/post/comment/{{ post.id }}" id="click">
-                {% csrf_token %}
-                    <img src="https://img1.daumcdn.net/thumb/R1280x0/?scode=mtistory2&fname=https%3A%2F%2Fblog.kakaocdn.net%2Fdn%2FciuH8b%2FbtrNwGm7p8P%2FtPO3dkc4hKsUTle3YOA2b1%2Fimg.png"
-                     style="width: 30px; height:30px;">
-                    <input name="comment" class="input-box" type="text" style="border: 1px solid lightgray; outline: none; width: 500px;"
-                       placeholder="댓글 달기..">
-                    <button class="submit" type="submit">게시</button>
-            </form>
+        <div class="input-group mb-3">
+            <span class="input-group-text">내용</span>
+            <textarea class="form-control" name="content" aria-label="With textarea" placeholder="내용을 입력하세요"></textarea>
         </div>
-    </div>
-    <div class="comment-box">
-        {% for cm in comment %}
-            {% if post.id == cm.post_id %}
-                <div class="row">
-                    <div class="col-md-12">
-                        <div class="media-body">
-                            <div style="float: right">
-                                {% if cm.author == user %}
-                                    <a style="cursor:pointer" class="material-icons-outlined"
-                                       href="/post/comment/delete/{{ cm.id }}"
-                                       title="삭제하기">delete</a>
-                                {% endif %}
-                            </div>
-                            <p style="line-height: 15px; margin-top:10px;">
-                                <b>{{ cm.author.user_nick_name }}</b> {{ cm.comment }}</p>
-                        </div>
-                    </div>
-                </div>
-            {% endif %}
-        {% endfor %}
-    </div>
+        <div class='input-group'>
+            <label class="input-group-text" for="images">사진 업로드</label>
+            <input class="form-control" name="images" type="file" accept="image/*"  onchange="imageView(this)"/>
+        </div>
+        <div class="image-preview"><img id="tempImage" src="" ></div>
+        <div class="submit-btn"><button type="submit">등록하기</button></div>
+    </form>
 </div>
 
+<script>
+<!-- 업로드 사진 미리보기 스크립트 -->
+ function imageView(input) {
+    if (input.files && input.files[0]) {
+        var reader = new FileReader();
 
+        reader.onload = function(e) {
+            $('#tempImage').attr('src', e.target.result)
+             {#.width(300)#}
+             {#.height(300);#}
+        }
+
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+</script>
 </body>
 </html>
